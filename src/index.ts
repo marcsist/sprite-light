@@ -1,4 +1,6 @@
 export { ThinkingSprite } from './ThinkingSprite'
 export type { ThinkingSpriteProps } from './ThinkingSprite'
+export { WriteSprite } from './WriteSprite'
+export type { WriteSpriteProps } from './WriteSprite'
 export { VARIANTS } from './variants'
 export type { VariantName, Pixels } from './variants'
