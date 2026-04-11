@@ -1,19 +1,23 @@
 import { useState } from 'react'
 import { ThinkingSprite } from './ThinkingSprite'
+import { WriteSprite } from './WriteSprite'
 import { VARIANTS, type VariantName } from './variants'
 
 const ALL_NAMES = VARIANTS.map((v) => v.name)
 
 export function Demo() {
+  const [writeText, setWriteText] = useState('HELLO')
   const [size, setSize] = useState(32)
   const [speed, setSpeed] = useState(90)
   const [active, setActive] = useState(true)
   const [ledMode, setLedMode] = useState(false)
   const [lockedVariant, setLockedVariant] = useState<VariantName | undefined>(undefined)
   const [selectedSubset, setSelectedSubset] = useState<Set<VariantName>>(new Set())
+  const [primaryColor, setPrimaryColor] = useState('#00ff88')
+  const [dimColor, setDimColor] = useState('#1a2a1a')
 
   const color: string | [string, string] | undefined = ledMode
-    ? ['#00ff88', '#1a2a1a']
+    ? [primaryColor, dimColor]
     : undefined
 
   const subsetArray: VariantName[] | undefined =
@@ -29,7 +33,7 @@ export function Demo() {
 
   return (
     <div style={{ fontFamily: 'monospace', padding: '2rem', maxWidth: 900, margin: '0 auto' }}>
-      <h1 style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>ThinkingSprite</h1>
+      <h1 style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>sprite-light</h1>
       <p style={{ color: '#888', marginBottom: '2rem' }}>
         Zero-dependency 8×8 pixel-art animation component for React.
       </p>
@@ -42,7 +46,7 @@ export function Demo() {
         </label>
         <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
           <span>Speed: {speed}ms/tick</span>
-          <input type="range" min={30} max={500} step={10} value={speed} onChange={(e) => setSpeed(Number(e.target.value))} />
+          <input type="range" min={30} max={150} step={1} value={speed} onChange={(e) => setSpeed(Number(e.target.value))} />
         </label>
         <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
           <input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} />
@@ -52,6 +56,18 @@ export function Demo() {
           <input type="checkbox" checked={ledMode} onChange={(e) => setLedMode(e.target.checked)} />
           LED matrix mode
         </label>
+        {ledMode && (
+          <>
+            <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <span>Lit color</span>
+              <input type="color" value={primaryColor} onChange={(e) => setPrimaryColor(e.target.value)} />
+            </label>
+            <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <span>Dim color</span>
+              <input type="color" value={dimColor} onChange={(e) => setDimColor(e.target.value)} />
+            </label>
+          </>
+        )}
         <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
           <span>Lock variant</span>
           <select
@@ -132,6 +148,41 @@ export function Demo() {
               {name}
             </label>
           ))}
+        </div>
+      </section>
+
+      {/* WriteSprite */}
+      <section style={{ marginBottom: '2rem' }}>
+        <h2 style={{ fontSize: '1rem', marginBottom: '0.5rem' }}>WriteSprite</h2>
+        <p style={{ color: '#888', fontSize: '0.85rem', marginBottom: '0.75rem' }}>
+          Spells out text letter by letter with a sweeping scan-line reveal.
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <label style={{ display: 'flex', flexDirection: 'column', gap: 4, maxWidth: 280 }}>
+            <span style={{ fontSize: '0.85rem' }}>Text (A–Z, 0–9, space)</span>
+            <input
+              type="text"
+              maxLength={20}
+              value={writeText}
+              onChange={(e) => setWriteText(e.target.value.toUpperCase())}
+              style={{
+                background: '#1a1a1a',
+                border: '1px solid #333',
+                color: '#e0e0e0',
+                padding: '6px 10px',
+                fontFamily: 'monospace',
+                fontSize: '1rem',
+                borderRadius: 4,
+                letterSpacing: '0.1em',
+              }}
+            />
+          </label>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <WriteSprite text={writeText} size={size} speed={speed} active={active} color={color} />
+            <span style={{ color: '#888', fontSize: '0.85rem' }}>
+              {writeText.replace(/[^A-Z0-9 !?.]/g, '').length} chars · ~{(writeText.replace(/[^A-Z0-9 !?.]/g, '').length * 2.2).toFixed(1)}s per cycle
+            </span>
+          </div>
         </div>
       </section>
 

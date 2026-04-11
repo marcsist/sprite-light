@@ -3,7 +3,11 @@ export type Pixels = Array<[number, number]>
 export type VariantName =
   | 'EKG' | 'Rain' | 'Snake' | 'Bounce' | 'Sine' | 'Scan' | 'Binary' | 'Morse'
   | 'Weave' | 'Spark' | 'Spiral' | 'Pulse' | 'DNA' | 'Pendulum' | 'Glitch'
-  | 'Orbit' | 'Life' | 'Stairs' | 'Bars' | 'Spin'
+  | 'Orbit' | 'Life' | 'Stairs' | 'Bars' | 'Spin' | 'Ghost'
+  | 'Breath' | 'Drip' | 'Bubble'
+  | 'Hourglass' | 'Ripple' | 'Tide' | 'Signal' | 'Focus'
+  | 'Campfire' | 'Firefly' | 'Bloom' | 'Flutter' | 'Aurora' | 'Surf'
+  | 'Invader' | 'Pac' | 'Pong' | 'Neko' | 'Worm' | 'Face'
 
 const cl = (v: number) => Math.min(7, Math.max(0, v))
 
@@ -214,15 +218,459 @@ function renderBars(tick: number): Pixels {
   return pixels
 }
 
-// ── Spin: 8-pixel line through center rotating 4 positions ───────────────
+// ── Spin: 8-pixel line through center rotating 8 positions ───────────────
 const SPIN_FRAMES: Pixels[] = [
-  Array.from({ length: 8 }, (_, i) => [3, i]),     // |
-  Array.from({ length: 8 }, (_, i) => [i, i]),     // \
-  Array.from({ length: 8 }, (_, i) => [i, 3]),     // —
-  Array.from({ length: 8 }, (_, i) => [i, 7 - i]), // /
+  Array.from({ length: 8 }, (_, i) => [3, i]),          // 0°   |
+  [[2,0],[2,1],[3,2],[3,3],[4,4],[4,5],[5,6],[5,7]],     // 22.5°
+  Array.from({ length: 8 }, (_, i) => [i, i]),           // 45°  \
+  [[0,2],[1,2],[2,3],[3,3],[4,4],[5,4],[6,5],[7,5]],     // 67.5°
+  Array.from({ length: 8 }, (_, i) => [i, 3]),           // 90°  —
+  [[0,5],[1,5],[2,4],[3,4],[4,3],[5,3],[6,2],[7,2]],     // 112.5°
+  Array.from({ length: 8 }, (_, i) => [i, 7 - i]),       // 135° /
+  [[5,0],[5,1],[4,2],[4,3],[3,4],[3,5],[2,6],[2,7]],     // 157.5°
 ]
 function renderSpin(tick: number): Pixels {
-  return SPIN_FRAMES[Math.floor(tick / 6) % 4]
+  return SPIN_FRAMES[Math.floor(tick / 3) % 8]
+}
+
+// ── Breath: center diamond expands and contracts like lungs ──────────────────
+function renderBreath(tick: number): Pixels {
+  const t = (tick / 30) * Math.PI * 2
+  const r = Math.round(1.5 + 1.5 * Math.sin(t))   // radius 0..3
+  const cx = 3, cy = 3
+  const pixels: Pixels = []
+  for (let x = 0; x < 8; x++) {
+    for (let y = 0; y < 8; y++) {
+      if (Math.abs(x - cx) + Math.abs(y - cy) === r) pixels.push([x, y])
+    }
+  }
+  if (r === 0) pixels.push([cx, cy])
+  return pixels
+}
+
+// ── Drip: pixel forms at top, falls with gravity, splashes at bottom ──────────
+function renderDrip(tick: number): Pixels {
+  const cycle = 28
+  const t = tick % cycle
+  if (t < 5) {
+    // forming: pixel hangs at top, growing from 1 to 2px
+    const px: Pixels = [[3, 0]]
+    if (t >= 3) px.push([3, 1])
+    return px
+  }
+  if (t < 18) {
+    // falling: quadratic acceleration
+    const fall = t - 5
+    const y = cl(Math.round(1 + 0.18 * fall * fall))
+    return [[3, y]]
+  }
+  // splash: 3-pixel horizontal spread, fades
+  const age = t - 18
+  if (age < 5) return [[2, 7], [3, 7], [4, 7]]
+  if (age < 8) return [[1, 7], [3, 7], [5, 7]]
+  return []
+}
+
+// ── Bubble: three dots appear one by one, hold, vanish — the "..." of thinking
+function renderBubble(tick: number): Pixels {
+  const cycle = 36
+  const t = tick % cycle
+  const pixels: Pixels = []
+  // each dot appears 6 ticks after the previous, holds until t=28, then all pop
+  const dots: [number, number][] = [[1, 4], [3, 4], [5, 4]]
+  dots.forEach(([x, y], i) => {
+    const appear = i * 6
+    if (t >= appear && t < 28) pixels.push([x, y])
+  })
+  return pixels
+}
+
+// ── Ghost: favicon sprite floating and wiggling with the breeze ──────────────
+const GHOST_ROWS: number[][] = [
+  [2, 3, 4, 5],              // row 0: head arc
+  [1, 2, 3, 4, 5, 6],        // row 1: head full
+  [0, 1, 3, 4, 6, 7],        // row 2: eyes (gaps at 2, 5)
+  [0, 1, 2, 3, 4, 5, 6, 7],  // row 3: body
+  [0, 1, 2, 3, 4, 5, 6, 7],  // row 4: body
+  [0, 2, 3, 4, 5, 7],        // row 5: skirt (gaps at 1, 6)
+  [2, 5],                    // row 6: feet
+]
+function renderGhost(tick: number): Pixels {
+  const tSway   = (tick / 28) * Math.PI * 2
+  const tBob    = (tick / 18) * Math.PI * 2
+  const swayTop = Math.sin(tSway)
+  const swayBot = Math.sin(tSway + 1.3)               // hem trails the head
+  const dy      = Math.sin(tBob) > 0.2 ? 1 : 0
+  const dxTop   = Math.abs(swayTop) > 0.65 ? (swayTop > 0 ? 1 : -1) : 0
+  const dxBot   = Math.abs(swayBot) > 0.65 ? (swayBot > 0 ? 1 : -1) : 0
+  return GHOST_ROWS.flatMap((xs, row) => {
+    const dx = row <= 2 ? dxTop : row >= 5 ? dxBot : 0
+    return xs.map((x) => [cl(x + dx), row + dy] as [number, number])
+  })
+}
+
+// ── Hourglass: sand drains top→bottom, then spins 180° and repeats ───────────
+// Four rotation keyframes: 0° → 45° → 90° → 135° → 180°(=0°)
+const HG_FRAMES: Pixels[] = [
+  // F0: 0° vertical
+  [[0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],
+   [0,1],[7,1],[1,2],[6,2],[2,3],[3,3],[4,3],[5,3],
+   [2,4],[3,4],[4,4],[5,4],[1,5],[6,5],[0,6],[7,6],
+   [0,7],[1,7],[2,7],[3,7],[4,7],[5,7],[6,7],[7,7]],
+  // F1: 45° CW — top cap drifts upper-right, bottom cap lower-left
+  [[5,0],[6,0],[7,0],[4,1],[7,1],[3,2],[6,2],
+   [2,3],[3,3],[4,3],[3,4],[4,4],[5,4],
+   [1,5],[4,5],[0,6],[3,6],[0,7],[1,7],[2,7]],
+  // F2: 90° horizontal — caps become left/right vertical bars
+  [[0,0],[7,0],[0,1],[1,1],[6,1],[7,1],[0,2],[2,2],[5,2],[7,2],
+   [0,3],[3,3],[4,3],[7,3],[0,4],[3,4],[4,4],[7,4],
+   [0,5],[2,5],[5,5],[7,5],[0,6],[1,6],[6,6],[7,6],[0,7],[7,7]],
+  // F3: 135° CW — top cap drifts lower-right, bottom cap upper-left
+  [[0,0],[1,0],[2,0],[0,1],[3,1],[1,2],[4,2],
+   [3,3],[4,3],[5,3],[2,4],[3,4],[4,4],
+   [3,5],[6,5],[4,6],[7,6],[5,7],[6,7],[7,7]],
+]
+function renderHourglass(tick: number): Pixels {
+  const drainDur = 48
+  const rotDur = 20   // 4 frames × 5 ticks each
+  const total = drainDur + rotDur
+  const t = tick % total
+  if (t >= drainDur) {
+    // spin: step through the 4 rotation frames
+    return [...HG_FRAMES[Math.min(3, Math.floor((t - drainDur) / 5))]]
+  }
+  const progress = t / drainDur
+  const pixels: Pixels = []
+  // outline: bars + angled sides + waist
+  for (let x = 0; x < 8; x++) { pixels.push([x, 0]); pixels.push([x, 7]) }
+  pixels.push([0,1],[7,1],[1,2],[6,2],[1,5],[6,5],[0,6],[7,6])
+  pixels.push([2,3],[3,3],[4,3],[5,3],[2,4],[3,4],[4,4],[5,4])
+  // top sand draining (rows 1–2, disappears as progress → 1)
+  if (progress < 0.55) for (let x = 1; x <= 6; x++) pixels.push([x, 1])
+  if (progress < 0.85) for (let x = 2; x <= 5; x++) pixels.push([x, 2])
+  // bottom sand filling (rows 5–6, appears as progress → 1)
+  if (progress > 0.15) for (let x = 2; x <= 5; x++) pixels.push([x, 5])
+  if (progress > 0.45) for (let x = 1; x <= 6; x++) pixels.push([x, 6])
+  // single grain falling through the waist
+  pixels.push([3, cl(Math.round(1 + progress * 5))], [4, cl(Math.round(1 + progress * 5))])
+  return pixels
+}
+
+// ── Ripple: concentric diamond rings expand from center ───────────────────────
+function renderRipple(tick: number): Pixels {
+  const cx = 3, cy = 3
+  // two overlapping ripples, offset by 10 ticks
+  const pixels: Pixels = []
+  for (const offset of [0, 14]) {
+    const r = (tick + offset) % 14
+    if (r === 0) { pixels.push([cx, cy]); continue }
+    for (let x = 0; x < 8; x++) {
+      for (let y = 0; y < 8; y++) {
+        if (Math.abs(x - cx) + Math.abs(y - cy) === r) pixels.push([x, y])
+      }
+    }
+  }
+  return pixels
+}
+
+// ── Tide: water level rises and falls with a scrolling wave crest ─────────────
+function renderTide(tick: number): Pixels {
+  const level = Math.round(3 + 2.5 * Math.sin((tick / 36) * Math.PI * 2))  // 1..6
+  const scroll = tick % 8
+  const pixels: Pixels = []
+  for (let x = 0; x < 8; x++) {
+    // wave crest: every 4 cols the surface is 1 higher
+    const crest = Math.round(0.5 + 0.5 * Math.sin(((x + scroll) / 4) * Math.PI * 2))
+    const surface = cl(level - crest)
+    for (let y = surface; y < 8; y++) pixels.push([x, y])
+  }
+  return pixels
+}
+
+// ── Signal: WiFi-style arcs emanating from bottom-left ───────────────────────
+function renderSignal(tick: number): Pixels {
+  const period = 28
+  const t = tick % period
+  const pixels: Pixels = []
+  // 3 arcs at radii 2, 4, 6 — each appears for 8 ticks, staggered
+  for (let arc = 0; arc < 3; arc++) {
+    const start = arc * 6
+    const age = t - start
+    if (age < 0 || age >= 14) continue
+    const r = (arc + 1) * 2
+    for (let x = 0; x < 8; x++) {
+      for (let y = 0; y < 8; y++) {
+        const d = Math.sqrt(x * x + (7 - y) * (7 - y))
+        if (Math.abs(d - r) < 0.7) pixels.push([x, y])
+      }
+    }
+  }
+  // origin dot
+  pixels.push([0, 7])
+  return pixels
+}
+
+// ── Focus: scanning beam pauses on a "find", then continues ──────────────────
+function renderFocus(tick: number): Pixels {
+  const period = 48
+  const t = tick % period
+  const pixels: Pixels = []
+  if (t >= 20 && t < 36) {
+    // lock-on: 2x2 reticle with corner brackets at a fixed spot
+    const lx = 3, ly = 2
+    pixels.push([lx, ly], [lx + 1, ly], [lx, ly + 1], [lx + 1, ly + 1])  // target
+    pixels.push([lx - 1, ly - 1], [lx + 2, ly - 1], [lx - 1, ly + 2], [lx + 2, ly + 2])  // corners
+  } else {
+    // scanning: horizontal sweep line
+    const x = t < 20 ? Math.floor((t / 20) * 8) : Math.floor(((t - 36) / 12) * 8)
+    pixels.push([cl(x), 2], [cl(x), 3], [cl(x), 4], [cl(x), 5])
+  }
+  return pixels
+}
+
+// ── Campfire: flickering flame at bottom, occasional rising sparks ────────────
+function renderCampfire(tick: number): Pixels {
+  const pixels: Pixels = []
+  // ember base: fixed
+  pixels.push([2, 7], [3, 7], [4, 7], [5, 7])
+  // flame body: hash-based flicker constrained to flame silhouette
+  const flicker = (row: number, col: number) => {
+    const h = Math.sin(col * 127.1 + row * 311.7 + tick * 17.3) * 43758.5
+    return Math.abs(h % 1) > 0.38
+  }
+  const flameShape = [
+    [3, 4, 5], [2, 3, 4, 5], [3, 4], [3]
+  ]
+  flameShape.forEach((cols, i) => {
+    const y = 6 - i
+    cols.forEach((x) => { if (flicker(y, x)) pixels.push([x, y]) })
+  })
+  // spark: rises every ~12 ticks
+  const sparkCycle = tick % 12
+  if (sparkCycle < 5) {
+    const sparkY = cl(6 - sparkCycle * 1.4 | 0)
+    const sparkX = ((tick / 12 | 0) % 3) + 2
+    pixels.push([sparkX, sparkY])
+  }
+  return pixels
+}
+
+// ── Firefly: brief flashes at scattered positions, long quiet between ─────────
+const FIREFLY_POS: [number, number][] = [[1,1],[6,2],[2,5],[5,6],[0,3],[7,4],[3,7],[4,0]]
+const FIREFLY_PHASE = [0, 7, 13, 20, 27, 34, 41, 48]
+function renderFirefly(tick: number): Pixels {
+  const cycle = 56
+  const t = tick % cycle
+  return FIREFLY_POS.filter((_, i) => {
+    const age = (t - FIREFLY_PHASE[i] + cycle) % cycle
+    return age < 3   // on for 3 ticks, off for the rest of the 56-tick cycle
+  })
+}
+
+// ── Bloom: stem grows, bud forms, petals open, wilts back down ───────────────
+function renderBloom(tick: number): Pixels {
+  const cycle = 48
+  const t = tick % cycle
+  const pixels: Pixels = []
+  // stem grows to y=2 over first 16 ticks
+  const stemTop = cl(7 - Math.floor(t / 2.5))
+  for (let y = stemTop; y <= 7; y++) pixels.push([3, y])
+  if (t < 16) return pixels
+  // bud: 3px cluster at top of stem
+  pixels.push([3, 2], [2, 3], [4, 3])
+  if (t < 24) return pixels
+  // petals open
+  const petalAge = t - 24
+  if (petalAge > 0) pixels.push([2, 1], [4, 1])
+  if (petalAge > 3) pixels.push([1, 2], [5, 2])
+  if (petalAge > 6) pixels.push([2, 4], [4, 4])  // lower petals
+  if (t < 38) return pixels
+  // wilt: reverse
+  const wilt = t - 38
+  if (wilt < 3) { pixels.push([2, 1], [4, 1], [1, 2], [5, 2], [2, 4], [4, 4]) }
+  else if (wilt < 6) { pixels.push([2, 1], [4, 1]) }
+  return pixels
+}
+
+// ── Flutter: butterfly with flapping wings drifting across ───────────────────
+function renderFlutter(tick: number): Pixels {
+  const wingFrame = Math.floor(tick / 3) % 4   // 4-frame wing cycle
+  const driftX = Math.floor(tick / 8) % 8      // drift across grid
+  const cx = driftX, cy = 3
+  const pixels: Pixels = []
+  // body: 2 pixels
+  pixels.push([cl(cx + 1), cy], [cl(cx + 1), cy + 1])
+  // wings: fold up/down
+  const wingY = [cy - 1, cy, cy + 1, cy + 2][wingFrame]
+  pixels.push([cl(cx), wingY], [cl(cx + 2), wingY])
+  if (wingFrame < 2) {
+    pixels.push([cl(cx - 1), cl(wingY - 1)], [cl(cx + 3), cl(wingY - 1)])
+  } else {
+    pixels.push([cl(cx - 1), cl(wingY + 1)], [cl(cx + 3), cl(wingY + 1)])
+  }
+  return pixels
+}
+
+// ── Aurora: shimmering vertical columns of varying height ─────────────────────
+function renderAurora(tick: number): Pixels {
+  const pixels: Pixels = []
+  // active columns: 0, 2, 4, 6
+  for (let col = 0; col < 8; col += 2) {
+    const phase = col * 0.7
+    const height = Math.round(2 + 5 * (0.5 + 0.5 * Math.sin((tick / 30 + phase) * Math.PI * 2)))
+    for (let row = 8 - height; row < 8; row++) pixels.push([col, row])
+    // shimmer tip: extra pixel above column sometimes
+    const shimmer = Math.sin((tick / 15 + phase * 1.3) * Math.PI * 2)
+    if (shimmer > 0.6) pixels.push([col, cl(8 - height - 1)])
+  }
+  return pixels
+}
+
+// ── Surf: wave rolls in, shoals, crests, breaks, foam settles ─────────────────
+// Continuous profile — no discrete phase switches; the wave is always one math expression.
+function renderSurf(tick: number): Pixels {
+  const cycle = 40
+  const t = tick % cycle
+  const pixels: Pixels = []
+  // sea floor
+  for (let x = 0; x < 8; x++) pixels.push([x, 7])
+  // crest sweeps from x≈9 (off right) to x≈-3 (off left) over 32 ticks
+  const xc = 9 - (t / 32) * 12
+  // shoaling: wave grows taller as it nears the shore (x=0)
+  const shoaling = Math.max(0, Math.min(1, (8 - xc) / 9))
+  const amp = 1 + 4 * shoaling          // 1 px in deep water → 5 px at shore
+  // asymmetric profile: steep front face, gradual back slope
+  for (let x = 0; x < 8; x++) {
+    const d = x - xc
+    let factor = 0
+    if (d >= 0 && d <= 3.5)    factor = 1 - d / 3.5   // front: steep
+    else if (d > -4 && d < 0)  factor = 1 + d / 4     // back:  gentle
+    const h = Math.round(Math.max(0, factor) * amp)
+    for (let dy = 1; dy <= h; dy++) pixels.push([x, cl(7 - dy)])
+  }
+  // curl: a spray pixel overhangs the crest once the wave is tall enough
+  if (amp >= 3 && xc > 0.5 && xc < 7)
+    pixels.push([cl(Math.round(xc) - 1), cl(7 - Math.round(amp) - 1)])
+  // foam: scattered surface pixels that dissipate after the wave exits the grid
+  if (t >= 32) {
+    const age = t - 32
+    ;[0, 2, 4, 1, 3].slice(0, Math.max(0, 5 - age)).forEach((x) => pixels.push([x, 6]))
+  }
+  return pixels
+}
+
+// ── Invader: space invader marching side to side with arm toggle ──────────────
+const INVADER_A: Pixels = [
+  [2,0],[5,0],[3,1],[4,1],[2,2],[3,2],[4,2],[5,2],
+  [1,3],[2,3],[3,3],[4,3],[5,3],[6,3],
+  [1,4],[2,4],[3,4],[4,4],[5,4],[6,4],
+  [1,5],[3,5],[4,5],[6,5],
+  [2,6],[5,6],
+]
+const INVADER_B: Pixels = [
+  [2,0],[5,0],[3,1],[4,1],[2,2],[3,2],[4,2],[5,2],
+  [1,3],[2,3],[3,3],[4,3],[5,3],[6,3],
+  [1,4],[2,4],[3,4],[4,4],[5,4],[6,4],
+  [2,5],[3,5],[4,5],[5,5],
+  [1,6],[3,6],[4,6],[6,6],
+]
+function renderInvader(tick: number): Pixels {
+  const frame = Math.floor(tick / 4) % 2
+  const march = Math.floor(tick / 8)
+  const dx = march % 6 < 3 ? march % 3 : 2 - (march % 3)   // 0→1→2→1→0
+  const base = frame === 0 ? INVADER_A : INVADER_B
+  return base.map(([x, y]) => [cl(x + dx - 1), y])
+}
+
+// ── Pac: pac-man chomping across the grid, eating dots ────────────────────────
+function renderPac(tick: number): Pixels {
+  const pixels: Pixels = []
+  const pos = tick % 32
+  const cx = Math.floor(pos / 4)   // moves right 1px every 4 ticks
+  const chomp = (pos % 4) < 2      // mouth open/closed
+  // body
+  const body: [number, number][] = [
+    [0,1],[1,1],[2,1],[0,2],[1,2],[2,2],[0,3],[1,3],[2,3],
+    [0,4],[1,4],[2,4],[0,5],[1,5],[2,5],
+  ]
+  if (!chomp) body.push([1,0],[2,0],[2,6],[1,6])  // top/bottom when closed
+  body.forEach(([dx, dy]) => pixels.push([cl(cx + dx - 1), dy]))
+  // dots ahead of pac
+  for (let d = cx + 3; d < 8; d += 2) pixels.push([d, 3])
+  return pixels
+}
+
+// ── Pong: ball bouncing between two tracking paddles ──────────────────────────
+function renderPong(tick: number): Pixels {
+  const pixels: Pixels = []
+  // ball: diagonal path
+  const bx = tick % 14 < 7 ? tick % 7 + 1 : 7 - (tick % 7)
+  const by = tick % 10 < 5 ? tick % 5 + 1 : 5 - (tick % 5) + 1
+  pixels.push([cl(bx), cl(by)])
+  // paddles: track ball y with 1-tick lag
+  const prevBy = (tick - 1) % 10 < 5 ? (tick - 1) % 5 + 1 : 5 - ((tick - 1) % 5) + 1
+  for (let dy = -1; dy <= 1; dy++) {
+    pixels.push([0, cl(prevBy + dy)])  // left paddle
+    pixels.push([7, cl(prevBy + dy)])  // right paddle
+  }
+  return pixels
+}
+
+// ── Neko: sitting cat (side profile) with swishing tail and blink ─────────────
+const NEKO_BODY: Pixels = [
+  [4,0],[5,0],[4,1],[5,1],[6,1],[4,2],[5,2],[6,2],  // head + ear
+  [4,3],[5,3],[6,3],[4,4],[5,4],[6,4],[6,5],         // body
+  [4,6],[5,6],[6,6],[4,7],[5,7],[6,7],               // haunches + feet
+]
+function renderNeko(tick: number): Pixels {
+  const pixels: Pixels = [...NEKO_BODY]
+  // eye: row 2 col 5 — blink every 30 ticks
+  if (tick % 30 >= 2) pixels.push([5, 2])  // eye open except 2-tick blink
+  // tail: swishes from x=1..3 at rows 5-7
+  const tailAngle = Math.sin((tick / 20) * Math.PI * 2)
+  const tx = cl(Math.round(2 + tailAngle * 1.2))
+  pixels.push([tx, 5], [cl(tx - 1), 6], [cl(tx - 2), 7])
+  return pixels
+}
+
+// ── Worm: 5-segment creature undulating via delayed head trail ─────────────────
+function renderWorm(tick: number): Pixels {
+  const delay = 4
+  const headPath = (t: number): [number, number] => {
+    const x = Math.round(3.5 + 3 * Math.sin((t / 24) * Math.PI * 2))
+    const y = Math.round(3.5 + 2 * Math.sin((t / 16) * Math.PI * 2))
+    return [cl(x), cl(y)]
+  }
+  return [0, 1, 2, 3, 4].map((seg) => headPath(tick - seg * delay))
+}
+
+// ── Face: smiley that blinks and shifts expression subtly ─────────────────────
+function renderFace(tick: number): Pixels {
+  const blinking = tick % 28 < 2
+  const happy = Math.floor(tick / 40) % 3 === 1
+  const thinking = Math.floor(tick / 40) % 3 === 2
+  const pixels: Pixels = [
+    // outline circle
+    [2,0],[3,0],[4,0],[5,0],
+    [1,1],[6,1],[0,2],[7,2],[0,3],[7,3],[0,4],[7,4],[0,5],[7,5],
+    [1,6],[6,6],[2,7],[3,7],[4,7],[5,7],
+  ]
+  // eyes
+  if (!blinking) {
+    pixels.push([2,2],[5,2])
+    if (thinking) pixels.push([3,2])  // squint
+  } else {
+    pixels.push([2,3],[5,3])  // closed eyes lower
+  }
+  // mouth
+  if (happy) {
+    pixels.push([2,5],[3,5],[4,5],[5,5],[1,4],[6,4])
+  } else if (thinking) {
+    pixels.push([2,5],[3,5],[4,5])
+  } else {
+    pixels.push([2,5],[3,5],[4,5],[5,5])
+  }
+  return pixels
 }
 
 // ── Variant registry ──────────────────────────────────────────────────────
@@ -247,4 +695,25 @@ export const VARIANTS: Array<{ name: VariantName; render: (tick: number) => Pixe
   { name: 'Stairs',   render: renderStairs   },
   { name: 'Bars',     render: renderBars     },
   { name: 'Spin',     render: renderSpin     },
+  { name: 'Ghost',    render: renderGhost    },
+  { name: 'Breath',   render: renderBreath   },
+  { name: 'Drip',     render: renderDrip     },
+  { name: 'Bubble',   render: renderBubble   },
+  { name: 'Hourglass',render: renderHourglass},
+  { name: 'Ripple',   render: renderRipple   },
+  { name: 'Tide',     render: renderTide     },
+  { name: 'Signal',   render: renderSignal   },
+  { name: 'Focus',    render: renderFocus    },
+  { name: 'Campfire', render: renderCampfire },
+  { name: 'Firefly',  render: renderFirefly  },
+  { name: 'Bloom',    render: renderBloom    },
+  { name: 'Flutter',  render: renderFlutter  },
+  { name: 'Aurora',   render: renderAurora   },
+  { name: 'Surf',     render: renderSurf     },
+  { name: 'Invader',  render: renderInvader  },
+  { name: 'Pac',      render: renderPac      },
+  { name: 'Pong',     render: renderPong     },
+  { name: 'Neko',     render: renderNeko     },
+  { name: 'Worm',     render: renderWorm     },
+  { name: 'Face',     render: renderFace     },
 ]
