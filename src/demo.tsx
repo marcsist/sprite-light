@@ -93,14 +93,14 @@ export function Demo() {
             variants={subsetArray}
           />
           <span style={{ color: '#888', fontSize: '0.85rem' }}>
-            {lockedVariant ? `locked: ${lockedVariant}` : subsetArray ? `cycling: ${subsetArray.join(', ')}` : 'cycling all 20'}
+            {lockedVariant ? `locked: ${lockedVariant}` : subsetArray ? `cycling: ${subsetArray.join(', ')}` : `cycling all ${ALL_NAMES.length}`}
           </span>
         </div>
       </section>
 
       {/* All 20 variants grid */}
       <section style={{ marginBottom: '2rem' }}>
-        <h2 style={{ fontSize: '1rem', marginBottom: '1rem' }}>All 20 variants (click to lock)</h2>
+        <h2 style={{ fontSize: '1rem', marginBottom: '1rem' }}>{`All ${ALL_NAMES.length} variants (click to lock)`}</h2>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))', gap: '1rem' }}>
           {ALL_NAMES.map((name) => (
             <div
