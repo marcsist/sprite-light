@@ -94,6 +94,10 @@ export interface WriteSpriteProps {
    * - Omitted → `currentColor`.
    */
   color?: string | [string, string]
+  /** Pixel shape. 'dot' renders round circles with lite-brite spacing. Default: 'square' */
+  shape?: 'square' | 'dot'
+  /** Radius of each dot in SVG units (0–0.5). Only used when shape='dot'. Default: 0.38 */
+  dotRadius?: number
 }
 
 export function WriteSprite({
@@ -102,6 +106,8 @@ export function WriteSprite({
   speed = 90,
   active = true,
   color,
+  shape = 'square',
+  dotRadius = 0.38,
 }: WriteSpriteProps) {
   const [tick, setTick] = useState(0)
 
@@ -134,22 +140,36 @@ export function WriteSprite({
       viewBox="0 0 8 8"
       role="img"
       aria-label={`Writing: ${text}`}
-      style={{ imageRendering: 'pixelated', display: 'block', flexShrink: 0 }}
+      style={{ imageRendering: shape === 'dot' ? undefined : 'pixelated', display: 'block', flexShrink: 0 }}
     >
       {isLedMode
-        ? ALL_CELLS.map(([x, y]) => (
-            <rect
-              key={`${x},${y}`}
-              x={x}
-              y={y}
-              width={1}
-              height={1}
-              fill={litSet.has(`${x},${y}`) ? primaryColor : dimColor}
-            />
-          ))
-        : litPixels.map(([x, y], i) => (
-            <rect key={i} x={x} y={y} width={1} height={1} fill={primaryColor} />
-          ))}
+        ? ALL_CELLS.map(([x, y]) =>
+            shape === 'dot' ? (
+              <circle
+                key={`${x},${y}`}
+                cx={x + 0.5}
+                cy={y + 0.5}
+                r={dotRadius}
+                fill={litSet.has(`${x},${y}`) ? primaryColor : dimColor}
+              />
+            ) : (
+              <rect
+                key={`${x},${y}`}
+                x={x}
+                y={y}
+                width={1}
+                height={1}
+                fill={litSet.has(`${x},${y}`) ? primaryColor : dimColor}
+              />
+            )
+          )
+        : litPixels.map(([x, y], i) =>
+            shape === 'dot' ? (
+              <circle key={i} cx={x + 0.5} cy={y + 0.5} r={dotRadius} fill={primaryColor} />
+            ) : (
+              <rect key={i} x={x} y={y} width={1} height={1} fill={primaryColor} />
+            )
+          )}
     </svg>
   )
 }
