@@ -5,7 +5,7 @@ Zero-dependency 8×8 pixel-art animation component for React.
 ## Quick start
 
 ```tsx
-// Bare — cycles all 20 variants on click
+// Bare — cycles all 42 variants on click
 <ThinkingSprite />
 
 // Fixed variant — no cycling
@@ -19,9 +19,12 @@ Zero-dependency 8×8 pixel-art animation component for React.
 
 // Paused — freezes on current frame
 <ThinkingSprite active={false} />
+
+// WriteSprite — spells text letter by letter
+<WriteSprite text="HELLO" size={32} />
 ```
 
-## Props
+## ThinkingSprite props
 
 | Prop | Type | Default | Description |
 |---|---|---|---|
@@ -32,7 +35,21 @@ Zero-dependency 8×8 pixel-art animation component for React.
 | `color` | `string \| [string, string]` | `currentColor` | Single color for lit pixels, or `[primary, dim]` for LED matrix mode. |
 | `speed` | `number` | `90` | Milliseconds per animation tick. Lower = faster. |
 
+## WriteSprite props
+
+Spells out text letter by letter using a built-in 3×5 pixel font. Supports A–Z, 0–9, and ` !?.`.
+
+| Prop | Type | Default | Description |
+|---|---|---|---|
+| `text` | `string` | `'HELLO'` | Text to animate. Characters not in the font are skipped. |
+| `size` | `number` | `16` | Side length in px. |
+| `speed` | `number` | `90` | Milliseconds per animation tick. Lower = faster. |
+| `active` | `boolean` | `true` | When `false`, animation freezes on the current frame. |
+| `color` | `string \| [string, string]` | `currentColor` | Same color API as ThinkingSprite. |
+
 ## Variants
+
+42 built-in variants:
 
 | Name | Animation |
 |---|---|
@@ -56,6 +73,27 @@ Zero-dependency 8×8 pixel-art animation component for React.
 | Stairs | 2-pixel trail climbing a staircase then falling back |
 | Bars | Audio equalizer with 8 sin-driven columns |
 | Spin | 8-pixel line through center rotating 4 positions |
+| Ghost | Floating ghost bobbing with blinking eyes |
+| Breath | Single pixel expanding and contracting from center |
+| Drip | Droplet falling and splashing at the bottom |
+| Bubble | Bubble rising from bottom |
+| Hourglass | Sand grains falling through a narrow neck |
+| Ripple | Concentric ring expanding from center |
+| Tide | Wave rolling across the grid |
+| Signal | WiFi-style signal bars pulsing |
+| Focus | Crosshair zooming in to center |
+| Campfire | Flickering flame |
+| Firefly | Single pixel drifting with organic path |
+| Bloom | Flower petals unfolding from center |
+| Flutter | Butterfly wing oscillation |
+| Aurora | Curtains of light sweeping horizontally |
+| Surf | Wave cresting and breaking |
+| Invader | Space invader marching animation |
+| Pac | Pac-Man chomping |
+| Pong | Ball bouncing between two tracking paddles |
+| Neko | Sitting cat with swishing tail and blink |
+| Worm | 5-segment creature undulating |
+| Face | Smiley that blinks and shifts expression |
 
 ## LED matrix mode
 
@@ -76,7 +114,7 @@ When `color` is a tuple, all 64 grid cells render — dim for unlit, primary for
 `VariantName` is exported for autocomplete and type safety:
 
 ```tsx
-import { ThinkingSprite, type VariantName } from 'sprite-light'
+import { ThinkingSprite, WriteSprite, type VariantName } from 'sprite-light'
 
-const myVariant: VariantName = 'DNA' // autocompletes all 20 names
+const myVariant: VariantName = 'DNA' // autocompletes all 42 names
 ```
