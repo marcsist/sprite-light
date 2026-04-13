@@ -13,6 +13,8 @@ export function Demo() {
   const [ledMode, setLedMode] = useState(false)
   const [lockedVariant, setLockedVariant] = useState<VariantName | undefined>(undefined)
   const [selectedSubset, setSelectedSubset] = useState<Set<VariantName>>(new Set())
+  const [dotMode, setDotMode] = useState(false)
+  const [dotRadius, setDotRadius] = useState(0.38)
   const [primaryColor, setPrimaryColor] = useState('#00ff88')
   const [dimColor, setDimColor] = useState('#1a2a1a')
 
@@ -56,6 +58,16 @@ export function Demo() {
           <input type="checkbox" checked={ledMode} onChange={(e) => setLedMode(e.target.checked)} />
           LED matrix mode
         </label>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+          <input type="checkbox" checked={dotMode} onChange={(e) => setDotMode(e.target.checked)} />
+          Dot shape (lite brite)
+        </label>
+        {dotMode && (
+          <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <span>Dot size: {dotRadius.toFixed(2)}</span>
+            <input type="range" min={0.15} max={0.48} step={0.01} value={dotRadius} onChange={(e) => setDotRadius(Number(e.target.value))} />
+          </label>
+        )}
         {ledMode && (
           <>
             <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -91,6 +103,8 @@ export function Demo() {
             color={color}
             variant={lockedVariant}
             variants={subsetArray}
+            shape={dotMode ? 'dot' : 'square'}
+            dotRadius={dotRadius}
           />
           <span style={{ color: '#888', fontSize: '0.85rem' }}>
             {lockedVariant ? `locked: ${lockedVariant}` : subsetArray ? `cycling: ${subsetArray.join(', ')}` : `cycling all ${ALL_NAMES.length}`}
@@ -124,6 +138,8 @@ export function Demo() {
                 active={active}
                 color={color}
                 variant={name}
+                shape={dotMode ? 'dot' : 'square'}
+                dotRadius={dotRadius}
               />
               <span style={{ fontSize: '0.7rem', color: '#aaa' }}>{name}</span>
             </div>
@@ -178,7 +194,7 @@ export function Demo() {
             />
           </label>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <WriteSprite text={writeText} size={size} speed={speed} active={active} color={color} />
+            <WriteSprite text={writeText} size={size} speed={speed} active={active} color={color} shape={dotMode ? 'dot' : 'square'} dotRadius={dotRadius} />
             <span style={{ color: '#888', fontSize: '0.85rem' }}>
               {writeText.replace(/[^A-Z0-9 !?.]/g, '').length} chars · ~{(writeText.replace(/[^A-Z0-9 !?.]/g, '').length * 2.2).toFixed(1)}s per cycle
             </span>
@@ -194,10 +210,10 @@ export function Demo() {
         </p>
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
           {(['EKG', 'DNA', 'Pulse'] as VariantName[]).map((name) => (
-            <ThinkingSprite key={name} size={24} speed={speed} active={active} color={color} variant={name} />
+            <ThinkingSprite key={name} size={24} speed={speed} active={active} color={color} variant={name} shape={dotMode ? 'dot' : 'square'} dotRadius={dotRadius} />
           ))}
           <span style={{ color: '#555', fontSize: '0.8rem' }}>← locked (no tab stop)</span>
-          <ThinkingSprite size={24} speed={speed} active={active} color={color} />
+          <ThinkingSprite size={24} speed={speed} active={active} color={color} shape={dotMode ? 'dot' : 'square'} dotRadius={dotRadius} />
           <span style={{ color: '#555', fontSize: '0.8rem' }}>← interactive (tab stop)</span>
         </div>
       </section>

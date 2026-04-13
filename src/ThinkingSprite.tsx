@@ -30,6 +30,10 @@ export interface ThinkingSpriteProps {
   color?: string | [string, string]
   /** Milliseconds per animation tick. Lower = faster. Default: 90 */
   speed?: number
+  /** Pixel shape. 'dot' renders round circles with lite-brite spacing. Default: 'square' */
+  shape?: 'square' | 'dot'
+  /** Radius of each dot in SVG units (0–0.5). Only used when shape='dot'. Default: 0.38 */
+  dotRadius?: number
 }
 
 export function ThinkingSprite({
@@ -39,6 +43,8 @@ export function ThinkingSprite({
   active = true,
   color,
   speed = 90,
+  shape = 'square',
+  dotRadius = 0.38,
 }: ThinkingSpriteProps) {
   const [tick, setTick] = useState(0)
   const [idx, setIdx] = useState(0)
@@ -105,7 +111,7 @@ export function ThinkingSprite({
       onClick={isInteractive ? handleClick : undefined}
       onKeyDown={isInteractive ? handleKeyDown : undefined}
       style={{
-        imageRendering: 'pixelated',
+        imageRendering: shape === 'dot' ? undefined : 'pixelated',
         display: 'block',
         flexShrink: 0,
         cursor: isInteractive ? 'pointer' : 'default',
@@ -115,19 +121,33 @@ export function ThinkingSprite({
     >
       <title>{name}</title>
       {isLedMode
-        ? ALL_CELLS.map(([x, y]) => (
-            <rect
-              key={`${x},${y}`}
-              x={x}
-              y={y}
-              width={1}
-              height={1}
-              fill={litMap[y * 8 + x] ? primaryColor : dimColor}
-            />
-          ))
-        : litPixels.map(([x, y], i) => (
-            <rect key={i} x={x} y={y} width={1} height={1} fill={primaryColor} />
-          ))}
+        ? ALL_CELLS.map(([x, y]) =>
+            shape === 'dot' ? (
+              <circle
+                key={`${x},${y}`}
+                cx={x + 0.5}
+                cy={y + 0.5}
+                r={dotRadius}
+                fill={litMap[y * 8 + x] ? primaryColor : dimColor}
+              />
+            ) : (
+              <rect
+                key={`${x},${y}`}
+                x={x}
+                y={y}
+                width={1}
+                height={1}
+                fill={litMap[y * 8 + x] ? primaryColor : dimColor}
+              />
+            )
+          )
+        : litPixels.map(([x, y], i) =>
+            shape === 'dot' ? (
+              <circle key={i} cx={x + 0.5} cy={y + 0.5} r={dotRadius} fill={primaryColor} />
+            ) : (
+              <rect key={i} x={x} y={y} width={1} height={1} fill={primaryColor} />
+            )
+          )}
     </svg>
   )
 }
