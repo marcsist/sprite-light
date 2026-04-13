@@ -55,21 +55,24 @@ export function ThinkingSprite({
     return () => clearInterval(id)
   }, [active, speed])
 
+  // Resolve pool once — used in render body and event handlers
+  const pool = variant === undefined ? resolvePool(variants) : null
+
   // Resolve which variant entry to render
   let entry: { name: VariantName; render: (tick: number) => Pixels }
   if (variant !== undefined) {
     entry = resolveVariant(variant)
   } else {
-    const pool = resolvePool(variants)
-    const poolEntry = VARIANTS.find((v) => v.name === pool[idx % pool.length])
+    const poolEntry = VARIANTS.find((v) => v.name === pool![idx % pool!.length])
     entry = poolEntry ?? VARIANTS[0]
   }
 
   const { name, render } = entry
   const litPixels = render(tick)
 
-  // Build a Set for O(1) lookup in LED matrix mode
-  const litSet = new Set(litPixels.map(([x, y]) => `${x},${y}`))
+  // Flat Uint8Array lookup — avoids per-tick string allocation
+  const litMap = new Uint8Array(64)
+  for (const [x, y] of litPixels) litMap[y * 8 + x] = 1
 
   // Color resolution
   const isLedMode = Array.isArray(color) && color.length >= 2
@@ -84,16 +87,14 @@ export function ThinkingSprite({
 
   function handleClick() {
     if (!isInteractive) return
-    const pool = resolvePool(variants)
-    setIdx((i) => (i + 1) % pool.length)
+    setIdx((i) => (i + 1) % pool!.length)
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
     if (!isInteractive) return
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault()
-      const pool = resolvePool(variants)
-      setIdx((i) => (i + 1) % pool.length)
+      setIdx((i) => (i + 1) % pool!.length)
     }
   }
 
@@ -127,7 +128,7 @@ export function ThinkingSprite({
                 cx={x + 0.5}
                 cy={y + 0.5}
                 r={dotRadius}
-                fill={litSet.has(`${x},${y}`) ? primaryColor : dimColor}
+                fill={litMap[y * 8 + x] ? primaryColor : dimColor}
               />
             ) : (
               <rect
@@ -136,7 +137,7 @@ export function ThinkingSprite({
                 y={y}
                 width={1}
                 height={1}
-                fill={litSet.has(`${x},${y}`) ? primaryColor : dimColor}
+                fill={litMap[y * 8 + x] ? primaryColor : dimColor}
               />
             )
           )

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { Pixels } from './variants'
 
 // ── 3×5 pixel font — each glyph is 5 rows, 3 bits per row (bit2=col0, bit0=col2) ──
@@ -27,44 +27,45 @@ const OY = 1  // rows 1–5
 const CHAR_TICKS = 24  // ticks per character (~2.2s at 90ms/tick)
 const SWEEP = 8        // ticks for sweep-in and sweep-out phases
 
-function renderWrite(tick: number, text: string): Pixels {
-  const chars = text.toUpperCase().split('').filter((c) => c in FONT)
-  if (chars.length === 0) return []
+// Precomputed per-character pixel positions and distances from center.
+// Avoids Math.sqrt on every animation tick — distances are static per glyph.
+type PixelData = { x: number; y: number; dist: number }
+const CX = OX + 1.5
+const CY = OY + 2.5
+const MAX_DIST = 2.5
 
-  const t = tick % (chars.length * CHAR_TICKS)
-  const ci = Math.floor(t / CHAR_TICKS)
-  const ct = t % CHAR_TICKS
-  const rows = FONT[chars[ci]]
-  const pixels: Pixels = []
-
-  const phase = ct < SWEEP ? 'in' : ct < SWEEP * 2 ? 'hold' : 'out'
-  const progress = phase === 'in' ? ct / SWEEP : phase === 'out' ? (ct - SWEEP * 2) / SWEEP : 1
-
-  // Character center — for distance-based fade
-  const cx = OX + 1.5
-  const cy = OY + 2.5
-  const maxDist = 2.5  // pixels bloom from center outward to this distance
-
-  // Draw character pixels based on distance from center
+const CHAR_PIXELS: Record<string, PixelData[]> = {}
+for (const [char, rows] of Object.entries(FONT)) {
+  const pixels: PixelData[] = []
   for (let r = 0; r < 5; r++) {
     for (let c = 0; c < 3; c++) {
       if (!(rows[r] & (4 >> c))) continue
       const x = OX + c
       const y = OY + r
-      const dist = Math.sqrt((x - cx) ** 2 + (y - cy) ** 2)
+      pixels.push({ x, y, dist: Math.sqrt((x - CX) ** 2 + (y - CY) ** 2) })
+    }
+  }
+  CHAR_PIXELS[char] = pixels
+}
 
-      if (phase === 'in') {
-        // Pixels appear as progress grows: inner pixels first, outer last
-        const threshold = progress * maxDist
-        if (dist <= threshold) pixels.push([x, y])
-      } else if (phase === 'hold') {
-        // All pixels visible
-        pixels.push([x, y])
-      } else {
-        // phase === 'out': pixels fade as progress grows
-        const threshold = (1 - progress) * maxDist
-        if (dist <= threshold) pixels.push([x, y])
-      }
+// Accepts pre-parsed chars array to avoid text processing on every tick.
+function renderWrite(tick: number, chars: string[]): Pixels {
+  if (chars.length === 0) return []
+
+  const t = tick % (chars.length * CHAR_TICKS)
+  const ci = Math.floor(t / CHAR_TICKS)
+  const ct = t % CHAR_TICKS
+  const pixels: Pixels = []
+
+  const phase = ct < SWEEP ? 'in' : ct < SWEEP * 2 ? 'hold' : 'out'
+  const progress = phase === 'in' ? ct / SWEEP : phase === 'out' ? (ct - SWEEP * 2) / SWEEP : 1
+
+  for (const { x, y, dist } of CHAR_PIXELS[chars[ci]]) {
+    if (phase === 'hold') {
+      pixels.push([x, y])
+    } else {
+      const threshold = phase === 'in' ? progress * MAX_DIST : (1 - progress) * MAX_DIST
+      if (dist <= threshold) pixels.push([x, y])
     }
   }
 
@@ -122,8 +123,15 @@ export function WriteSprite({
     setTick(0)
   }, [text])
 
-  const litPixels = renderWrite(tick, text)
-  const litSet = new Set(litPixels.map(([x, y]) => `${x},${y}`))
+  // Parse text once per prop change, not on every tick
+  const chars = useMemo(
+    () => text.toUpperCase().split('').filter((c) => c in FONT),
+    [text]
+  )
+
+  const litPixels = renderWrite(tick, chars)
+  const litMap = new Uint8Array(64)
+  for (const [x, y] of litPixels) litMap[y * 8 + x] = 1
 
   const isLedMode = Array.isArray(color) && color.length >= 2
   const primaryColor = isLedMode
@@ -150,7 +158,7 @@ export function WriteSprite({
                 cx={x + 0.5}
                 cy={y + 0.5}
                 r={dotRadius}
-                fill={litSet.has(`${x},${y}`) ? primaryColor : dimColor}
+                fill={litMap[y * 8 + x] ? primaryColor : dimColor}
               />
             ) : (
               <rect
@@ -159,7 +167,7 @@ export function WriteSprite({
                 y={y}
                 width={1}
                 height={1}
-                fill={litSet.has(`${x},${y}`) ? primaryColor : dimColor}
+                fill={litMap[y * 8 + x] ? primaryColor : dimColor}
               />
             )
           )
