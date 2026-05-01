@@ -9,6 +9,7 @@ export type VariantName =
   | 'Campfire' | 'Firefly' | 'Bloom' | 'Flutter' | 'Aurora' | 'Surf'
   | 'Invader' | 'Pac' | 'Pong' | 'Neko' | 'Worm' | 'Face' | 'TabulaRasa'
   | 'Tamagotchi'
+  | 'Cursor' | 'Arc' | 'Neural' | 'Think' | 'Loader' | 'Radar'
 
 const cl = (v: number) => Math.min(7, Math.max(0, v))
 
@@ -754,6 +755,102 @@ function renderTamagotchi(tick: number): Pixels {
   return pixels
 }
 
+// ── Cursor: blinking I-beam text cursor ──────────────────────────────────
+function renderCursor(tick: number): Pixels {
+  if ((tick % 16) >= 10) return []
+  return [
+    [2,1],[3,1],[4,1],
+    [3,2],[3,3],[3,4],[3,5],
+    [2,6],[3,6],[4,6],
+  ]
+}
+
+// ── Arc: spinning 3-pixel arc on an 8-point circle — modern loading spinner ─
+const ARC_PATH: Pixels = [[3,0],[5,1],[6,3],[5,5],[3,6],[1,5],[0,3],[1,1]]
+function renderArc(tick: number): Pixels {
+  const n = ARC_PATH.length
+  const head = Math.floor(tick / 2) % n
+  return [0,1,2].map(i => ARC_PATH[(head + i) % n])
+}
+
+// ── Neural: three-node network with a 2-pixel pulse cycling the edges ─────
+const NEURAL_NODES: Pixels = [[3,1],[1,6],[6,6]]
+const NEURAL_EDGES: Pixels[] = [
+  [[2,2],[2,3],[1,4],[1,5]],   // A→B
+  [[2,6],[3,6],[4,6],[5,6]],   // B→C
+  [[6,5],[5,4],[5,3],[4,2]],   // C→A
+]
+function renderNeural(tick: number): Pixels {
+  const pixels: Pixels = [...NEURAL_NODES]
+  const period = 7
+  const t = tick % (NEURAL_EDGES.length * period)
+  const edgeIdx = Math.floor(t / period)
+  const pos = t % period
+  const edge = NEURAL_EDGES[edgeIdx]
+  if (pos < edge.length) {
+    pixels.push(edge[pos])
+    if (pos > 0) pixels.push(edge[pos - 1])
+  }
+  return pixels
+}
+
+// ── Think: question mark draws in, holds, morphs into exclamation mark ────
+function renderThink(tick: number): Pixels {
+  const cycle = 56
+  const t = tick % cycle
+  if (t < 16) {
+    const p: Pixels = []
+    if (t >= 0)  p.push([3,1],[4,1])
+    if (t >= 4)  p.push([2,2],[5,2])
+    if (t >= 8)  p.push([4,3],[5,3])
+    if (t >= 11) p.push([3,4])
+    if (t >= 14) p.push([3,6])
+    return p
+  }
+  if (t < 28) return [[3,1],[4,1],[2,2],[5,2],[4,3],[5,3],[3,4],[3,6]]
+  if (t < 38) {
+    const age = t - 28
+    const p: Pixels = [[3,1],[3,4],[3,6]]
+    if (age < 5)  p.push([4,1],[2,2],[5,2],[4,3],[5,3])
+    if (age >= 3) p.push([3,2],[3,3])
+    return p
+  }
+  if (t < 50) {
+    const p: Pixels = [[3,1],[3,2],[3,3],[3,4]]
+    if ((t % 8) < 6) p.push([3,6])
+    return p
+  }
+  return t < 54 ? [[3,1],[3,2],[3,3],[3,4],[3,6]] : []
+}
+
+// ── Loader: left-to-right progress bar fill, hold, reset ─────────────────
+function renderLoader(tick: number): Pixels {
+  const fill = 36, hold = 8, gap = 8
+  const t = tick % (fill + hold + gap)
+  if (t >= fill + hold) return []
+  const filled = t < fill ? Math.round((t / fill) * 8) : 8
+  const pixels: Pixels = []
+  for (let x = 0; x < filled; x++) pixels.push([x,3],[x,4])
+  return pixels
+}
+
+// ── Radar: boundary ring + rotating sweep arm radiating from centre ───────
+const RADAR_RING: Pixels = [[3,0],[5,1],[6,3],[5,5],[3,6],[1,5],[0,3],[1,1]]
+const RADAR_ARMS: Pixels[] = [
+  [[3,2],[3,1]],  // N
+  [[4,2]],        // NE
+  [[4,3],[5,3]],  // E
+  [[4,4]],        // SE
+  [[3,4],[3,5]],  // S
+  [[2,4]],        // SW
+  [[2,3],[1,3]],  // W
+  [[2,2]],        // NW
+]
+function renderRadar(tick: number): Pixels {
+  const dir = Math.floor(tick / 3) % 8
+  return [[3,3], ...RADAR_RING, ...RADAR_ARMS[dir]]
+}
+
 // ── Variant registry ──────────────────────────────────────────────────────
 export const VARIANTS: Array<{ name: VariantName; render: (tick: number) => Pixels }> = [
   { name: 'EKG',      render: renderEkg      },
@@ -799,4 +896,10 @@ export const VARIANTS: Array<{ name: VariantName; render: (tick: number) => Pixe
   { name: 'Face',       render: renderFace       },
   { name: 'TabulaRasa',  render: renderTabulaRasa  },
   { name: 'Tamagotchi', render: renderTamagotchi },
+  { name: 'Cursor', render: renderCursor },
+  { name: 'Arc',    render: renderArc    },
+  { name: 'Neural', render: renderNeural },
+  { name: 'Think',  render: renderThink  },
+  { name: 'Loader', render: renderLoader },
+  { name: 'Radar',  render: renderRadar  },
 ]
