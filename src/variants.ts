@@ -172,7 +172,7 @@ function renderPendulum(tick: number): Pixels {
 function renderGlitch(tick: number): Pixels {
   return Array.from({ length: 8 }, (_, row) => {
     const h = Math.sin(row * 127.1 + tick * 43.7) * 43758.5453
-    return [Math.abs(Math.floor(h % 8)), row]
+    return [Math.floor(Math.abs(h) % 8), row]
   })
 }
 
