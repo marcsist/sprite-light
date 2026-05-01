@@ -673,42 +673,42 @@ function renderFace(tick: number): Pixels {
   return pixels
 }
 
-// ── TabulaRasa: write row by row, sweep clean, repeat ────────────────────
+// ── TabulaRasa: placeholder-text lines, sweep clean, repeat ──────────────
 function renderTabulaRasa(tick: number): Pixels {
-  const WRITE = 32   // 2 pixels per tick, fills all 64 pixels
-  const HOLD  = 8    // brief pause at full grid
-  const WIPE  = 16   // eraser sweep across 8 cols/rows
-  const CYCLE = WRITE + HOLD + WIPE  // 56 ticks ≈ 5s at 90ms
+  // Every other row active; each row has word-like dash groups with gaps.
+  // Rows 0,2,4,6 only — rows 1,3,5,7 stay blank (breathing room).
+  const CONTENT: [number, number][] = [
+    // row 0: short word · long word
+    [0,0],[1,0],[2,0],           [4,0],[5,0],[6,0],[7,0],
+    // row 2: long word · short word
+    [0,2],[1,2],[2,2],[3,2],[4,2],     [6,2],[7,2],
+    // row 4: short word · medium word
+    [0,4],[1,4],       [3,4],[4,4],[5,4],[6,4],
+    // row 6: medium word · medium word
+    [0,6],[1,6],[2,6],[3,6],     [5,6],[6,6],[7,6],
+  ]
+
+  const WRITE = CONTENT.length  // one pixel per tick
+  const HOLD  = 10
+  const WIPE  = 16
+  const CYCLE = WRITE + HOLD + WIPE
 
   const t   = tick % CYCLE
   const dir = Math.floor(tick / CYCLE) % 4  // 0=L→R 1=R→L 2=T→B 3=B→T
-  const pixels: Pixels = []
 
   if (t < WRITE) {
-    // Fill pixels left-to-right, top-to-bottom like handwriting
-    const count = (t + 1) * 2
-    for (let i = 0; i < count && i < 64; i++)
-      pixels.push([i % 8, Math.floor(i / 8)])
+    return CONTENT.slice(0, t + 1)
   } else if (t < WRITE + HOLD) {
-    // Full grid lit
-    for (let y = 0; y < 8; y++)
-      for (let x = 0; x < 8; x++)
-        pixels.push([x, y])
+    return [...CONTENT]
   } else {
-    // Eraser sweep — direction rotates each cycle
     const edge = Math.floor(((t - WRITE - HOLD) + 1) / WIPE * 8)
-    for (let y = 0; y < 8; y++) {
-      for (let x = 0; x < 8; x++) {
-        const keep = dir === 0 ? x >= edge      // L→R: right side survives
-                   : dir === 1 ? x < 8 - edge  // R→L: left side survives
-                   : dir === 2 ? y >= edge      // T→B: bottom survives
-                   :             y < 8 - edge   // B→T: top survives
-        if (keep) pixels.push([x, y])
-      }
-    }
+    return CONTENT.filter(([x, y]) =>
+      dir === 0 ? x >= edge
+    : dir === 1 ? x < 8 - edge
+    : dir === 2 ? y >= edge
+    :             y < 8 - edge
+    )
   }
-
-  return pixels
 }
 
 // ── Variant registry ──────────────────────────────────────────────────────
