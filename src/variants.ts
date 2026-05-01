@@ -10,7 +10,7 @@ export type VariantName =
   | 'Invader' | 'Pac' | 'Pong' | 'Neko' | 'Worm' | 'Face' | 'TabulaRasa'
   | 'Tamagotchi'
   | 'Cursor' | 'Arc' | 'Neural' | 'Think' | 'Loader' | 'Radar'
-  | 'Wave' | 'Cog' | 'Ping' | 'Clock' | 'Step' | 'Fill' | 'Grow'
+  | 'Wave' | 'Cog' | 'VoiceWaveform' | 'Clock' | 'Step' | 'Fill' | 'Grow'
 
 const cl = (v: number) => Math.min(7, Math.max(0, v))
 
@@ -879,16 +879,17 @@ function renderCog(tick: number): Pixels {
   return [...COG_BODY, ...COG_TEETH[Math.floor(tick / 3) % 2]]
 }
 
-// ── Ping: center dot emits expanding diamond rings at intervals ───────────
-function renderPing(tick: number): Pixels {
-  const period = 24
-  const t = tick % period
-  const pixels: Pixels = [[3,3]]
-  if (t < 6) {
-    const r = t < 2 ? 1 : t < 4 ? 2 : 3
-    for (let x = 0; x < 8; x++)
-      for (let y = 0; y < 8; y++)
-        if (Math.abs(x - 3) + Math.abs(y - 3) === r) pixels.push([x, y])
+// ── VoiceWaveform: bars extend symmetrically up/down from horizontal center ──
+function renderVoiceWaveform(tick: number): Pixels {
+  const pixels: Pixels = []
+  const t = (tick / 16) * Math.PI * 2
+  for (let x = 0; x < 8; x++) {
+    const phase = (x * Math.PI * 2) / 8
+    const raw = Math.sin(t + phase) * 0.55
+              + Math.sin(t * 1.6 + phase * 1.4) * 0.30
+              + Math.sin(t * 2.5 + phase * 0.8) * 0.15
+    const a = Math.max(1, Math.min(4, Math.round((raw + 1) * 1.5 + 1)))
+    for (let y = 4 - a; y <= 3 + a; y++) pixels.push([x, y])
   }
   return pixels
 }
@@ -1002,7 +1003,7 @@ export const VARIANTS: Array<{ name: VariantName; render: (tick: number) => Pixe
   { name: 'Radar',  render: renderRadar  },
   { name: 'Wave',   render: renderWave   },
   { name: 'Cog',    render: renderCog    },
-  { name: 'Ping',   render: renderPing   },
+  { name: 'VoiceWaveform', render: renderVoiceWaveform },
   { name: 'Clock',  render: renderClock  },
   { name: 'Step',   render: renderStep   },
   { name: 'Fill',   render: renderFill   },
