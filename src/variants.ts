@@ -879,7 +879,7 @@ function renderCog(tick: number): Pixels {
   return [...COG_BODY, ...COG_TEETH[Math.floor(tick / 3) % 2]]
 }
 
-// ── VoiceWaveform: bars extend symmetrically up/down from horizontal center ──
+// ── VoiceWaveform: thin alternating lines of varying height from center ──
 function renderVoiceWaveform(tick: number): Pixels {
   const pixels: Pixels = []
   const t = (tick / 16) * Math.PI * 2
@@ -888,8 +888,9 @@ function renderVoiceWaveform(tick: number): Pixels {
     const raw = Math.sin(t + phase) * 0.55
               + Math.sin(t * 1.6 + phase * 1.4) * 0.30
               + Math.sin(t * 2.5 + phase * 0.8) * 0.15
-    const a = Math.max(1, Math.min(4, Math.round((raw + 1) * 1.5 + 1)))
-    for (let y = 4 - a; y <= 3 + a; y++) pixels.push([x, y])
+    const h = Math.max(0, Math.min(3, Math.round((raw + 1) * 1.75)))
+    pixels.push([x, 3 - h])
+    pixels.push([x, 4 + h])
   }
   return pixels
 }
