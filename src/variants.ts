@@ -8,6 +8,7 @@ export type VariantName =
   | 'Hourglass' | 'Ripple' | 'Tide' | 'Signal' | 'Focus'
   | 'Campfire' | 'Firefly' | 'Bloom' | 'Flutter' | 'Aurora' | 'Surf'
   | 'Invader' | 'Pac' | 'Pong' | 'Neko' | 'Worm' | 'Face' | 'TabulaRasa'
+  | 'Tamagotchi'
 
 const cl = (v: number) => Math.min(7, Math.max(0, v))
 
@@ -711,6 +712,48 @@ function renderTabulaRasa(tick: number): Pixels {
   return pixels
 }
 
+// ── Tamagotchi: round pixel pet drifting side-to-side, blinking, walking ──
+const TAMA_BODY: Pixels = [
+  [3,0],                                 // hair tuft
+  [2,1],[3,1],[4,1],                     // head top
+  [1,2],[2,2],[3,2],[4,2],[5,2],         // head widest
+  [1,3],[5,3],                           // face sides (eye dots at [2,3],[4,3] added separately)
+  [1,4],[5,4],                           // face sides lower (mouth dot at [3,4] added separately)
+  [2,5],[3,5],[4,5],                     // chin
+  [3,6],[4,6],                           // body stub
+]
+function renderTamagotchi(tick: number): Pixels {
+  // side-to-side drift: dx 0..2 via sine, ~5.7 s per cycle
+  const dx = Math.round(1 + Math.sin((tick / 32) * Math.PI * 2))
+  // walking feet: alternate wide/narrow every 8 ticks
+  const foot = Math.floor(tick / 8) % 2
+  // blink: 2-tick window every 40 ticks
+  const blink = tick % 40 < 2
+  // happy grin: last phase of a 4-phase 40-tick cycle
+  const happy = Math.floor(tick / 40) % 4 === 3
+
+  const pixels: Pixels = TAMA_BODY.map(([x, y]) => [cl(x + dx), y])
+
+  // eyes (open = lit dots; blink = leave dark)
+  if (!blink) pixels.push([cl(2 + dx), 3], [cl(4 + dx), 3])
+
+  // mouth (neutral = single dot; happy = wide grin)
+  if (happy) {
+    pixels.push([cl(2 + dx), 4], [cl(3 + dx), 4], [cl(4 + dx), 4])
+  } else {
+    pixels.push([cl(3 + dx), 4])
+  }
+
+  // feet
+  if (foot === 0) {
+    pixels.push([cl(2 + dx), 7], [cl(5 + dx), 7])   // wide stance
+  } else {
+    pixels.push([cl(3 + dx), 7], [cl(4 + dx), 7])   // narrow stance
+  }
+
+  return pixels
+}
+
 // ── Variant registry ──────────────────────────────────────────────────────
 export const VARIANTS: Array<{ name: VariantName; render: (tick: number) => Pixels }> = [
   { name: 'EKG',      render: renderEkg      },
@@ -754,5 +797,6 @@ export const VARIANTS: Array<{ name: VariantName; render: (tick: number) => Pixe
   { name: 'Neko',     render: renderNeko     },
   { name: 'Worm',     render: renderWorm     },
   { name: 'Face',       render: renderFace       },
-  { name: 'TabulaRasa', render: renderTabulaRasa },
+  { name: 'TabulaRasa',  render: renderTabulaRasa  },
+  { name: 'Tamagotchi', render: renderTamagotchi },
 ]
