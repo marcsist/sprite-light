@@ -7,7 +7,7 @@ export type VariantName =
   | 'Breath' | 'Drip' | 'Bubble'
   | 'Hourglass' | 'Ripple' | 'Tide' | 'Signal' | 'Focus'
   | 'Campfire' | 'Firefly' | 'Bloom' | 'Flutter' | 'Aurora' | 'Surf'
-  | 'Invader' | 'Pac' | 'Pong' | 'Neko' | 'Worm' | 'Face'
+  | 'Invader' | 'Pac' | 'Pong' | 'Neko' | 'Worm' | 'Face' | 'TabulaRasa'
 
 const cl = (v: number) => Math.min(7, Math.max(0, v))
 
@@ -673,6 +673,44 @@ function renderFace(tick: number): Pixels {
   return pixels
 }
 
+// ── TabulaRasa: write row by row, sweep clean, repeat ────────────────────
+function renderTabulaRasa(tick: number): Pixels {
+  const WRITE = 32   // 2 pixels per tick, fills all 64 pixels
+  const HOLD  = 8    // brief pause at full grid
+  const WIPE  = 16   // eraser sweep across 8 cols/rows
+  const CYCLE = WRITE + HOLD + WIPE  // 56 ticks ≈ 5s at 90ms
+
+  const t   = tick % CYCLE
+  const dir = Math.floor(tick / CYCLE) % 4  // 0=L→R 1=R→L 2=T→B 3=B→T
+  const pixels: Pixels = []
+
+  if (t < WRITE) {
+    // Fill pixels left-to-right, top-to-bottom like handwriting
+    const count = (t + 1) * 2
+    for (let i = 0; i < count && i < 64; i++)
+      pixels.push([i % 8, Math.floor(i / 8)])
+  } else if (t < WRITE + HOLD) {
+    // Full grid lit
+    for (let y = 0; y < 8; y++)
+      for (let x = 0; x < 8; x++)
+        pixels.push([x, y])
+  } else {
+    // Eraser sweep — direction rotates each cycle
+    const edge = Math.floor(((t - WRITE - HOLD) + 1) / WIPE * 8)
+    for (let y = 0; y < 8; y++) {
+      for (let x = 0; x < 8; x++) {
+        const keep = dir === 0 ? x >= edge      // L→R: right side survives
+                   : dir === 1 ? x < 8 - edge  // R→L: left side survives
+                   : dir === 2 ? y >= edge      // T→B: bottom survives
+                   :             y < 8 - edge   // B→T: top survives
+        if (keep) pixels.push([x, y])
+      }
+    }
+  }
+
+  return pixels
+}
+
 // ── Variant registry ──────────────────────────────────────────────────────
 export const VARIANTS: Array<{ name: VariantName; render: (tick: number) => Pixels }> = [
   { name: 'EKG',      render: renderEkg      },
@@ -715,5 +753,6 @@ export const VARIANTS: Array<{ name: VariantName; render: (tick: number) => Pixe
   { name: 'Pong',     render: renderPong     },
   { name: 'Neko',     render: renderNeko     },
   { name: 'Worm',     render: renderWorm     },
-  { name: 'Face',     render: renderFace     },
+  { name: 'Face',       render: renderFace       },
+  { name: 'TabulaRasa', render: renderTabulaRasa },
 ]
