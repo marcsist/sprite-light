@@ -5,7 +5,7 @@ Zero-dependency 8×8 pixel-art animation component for React.
 ## Quick start
 
 ```tsx
-// Bare — cycles all 48 variants on click
+// Bare — cycles all 55 variants on click
 <ThinkingSprite />
 
 // Fixed variant — no cycling
@@ -49,7 +49,7 @@ Spells out text letter by letter using a built-in 3×5 pixel font. Supports A–
 
 ## Variants
 
-48 built-in variants:
+55 built-in variants:
 
 | Name | Animation |
 |---|---|
@@ -102,6 +102,13 @@ Spells out text letter by letter using a built-in 3×5 pixel font. Supports A–
 | Think | Question mark draws in, holds, morphs into exclamation mark |
 | Loader | Horizontal progress bar filling left to right |
 | Radar | Boundary ring with rotating sweep arm from centre |
+| Wave | Three dots bouncing with staggered sinusoidal phase |
+| Cog | 4-tooth gear rotating between + and × positions |
+| Ping | Center dot emitting expanding diamond rings |
+| Clock | Ring face with fast minute hand and slow hour hand |
+| Step | Three dots filling left-to-right then draining |
+| Fill | 8-point ring filling clockwise, holds, resets |
+| Grow | Three columns growing from bottom to different heights |
 
 ## LED matrix mode
 
@@ -124,5 +131,5 @@ When `color` is a tuple, all 64 grid cells render — dim for unlit, primary for
 ```tsx
 import { ThinkingSprite, WriteSprite, type VariantName } from 'sprite-lite'
 
-const myVariant: VariantName = 'DNA' // autocompletes all 48 names
+const myVariant: VariantName = 'DNA' // autocompletes all 55 names
 ```

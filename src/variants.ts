@@ -10,6 +10,7 @@ export type VariantName =
   | 'Invader' | 'Pac' | 'Pong' | 'Neko' | 'Worm' | 'Face' | 'TabulaRasa'
   | 'Tamagotchi'
   | 'Cursor' | 'Arc' | 'Neural' | 'Think' | 'Loader' | 'Radar'
+  | 'Wave' | 'Cog' | 'Ping' | 'Clock' | 'Step' | 'Fill' | 'Grow'
 
 const cl = (v: number) => Math.min(7, Math.max(0, v))
 
@@ -851,6 +852,103 @@ function renderRadar(tick: number): Pixels {
   return [[3,3], ...RADAR_RING, ...RADAR_ARMS[dir]]
 }
 
+// ── Wave: three dots with staggered sinusoidal bounce — chat typing indicator
+function renderWave(tick: number): Pixels {
+  const cycle = 18
+  return ([1, 3, 5] as number[]).map((x, i) => {
+    const t = (tick - i * 6 + cycle * 10) % cycle
+    const phase = (t / cycle) * Math.PI * 2
+    const y = cl(5 - Math.round(Math.max(0, Math.sin(phase)) * 2))
+    return [x, y] as [number, number]
+  })
+}
+
+// ── Cog: 4-tooth gear alternating between + and × tooth positions ─────────
+const COG_BODY: Pixels = [
+  [2,2],[3,2],[4,2],[5,2],
+  [2,3],[5,3],
+  [2,4],[5,4],
+  [2,5],[3,5],[4,5],[5,5],
+  [3,3],[4,3],[3,4],[4,4],
+]
+const COG_TEETH: Pixels[] = [
+  [[3,0],[4,0],[7,3],[7,4],[3,7],[4,7],[0,3],[0,4]],  // N/E/S/W
+  [[6,0],[7,1],[6,7],[7,6],[0,6],[1,7],[0,1],[1,0]],  // NE/SE/SW/NW
+]
+function renderCog(tick: number): Pixels {
+  return [...COG_BODY, ...COG_TEETH[Math.floor(tick / 3) % 2]]
+}
+
+// ── Ping: center dot emits expanding diamond rings at intervals ───────────
+function renderPing(tick: number): Pixels {
+  const period = 24
+  const t = tick % period
+  const pixels: Pixels = [[3,3]]
+  if (t < 6) {
+    const r = t < 2 ? 1 : t < 4 ? 2 : 3
+    for (let x = 0; x < 8; x++)
+      for (let y = 0; y < 8; y++)
+        if (Math.abs(x - 3) + Math.abs(y - 3) === r) pixels.push([x, y])
+  }
+  return pixels
+}
+
+// ── Clock: ring face with minute hand (fast) and hour hand (slow) ─────────
+const CLOCK_RING: Pixels = [[3,0],[5,1],[6,3],[5,5],[3,6],[1,5],[0,3],[1,1]]
+const CLOCK_HANDS: Pixels[] = [
+  [[3,2],[3,1]],  // N
+  [[4,2],[5,1]],  // NE
+  [[4,3],[5,3]],  // E
+  [[4,4],[5,5]],  // SE
+  [[3,4],[3,5]],  // S
+  [[2,4],[1,5]],  // SW
+  [[2,3],[1,3]],  // W
+  [[2,2],[1,1]],  // NW
+]
+function renderClock(tick: number): Pixels {
+  const minuteDir = Math.floor(tick / 6) % 8
+  const hourDir = Math.floor(tick / 48) % 8
+  return [[3,3], ...CLOCK_RING, ...CLOCK_HANDS[minuteDir], CLOCK_HANDS[hourDir][0]]
+}
+
+// ── Step: three dots fill left-to-right then drain left-to-right ──────────
+function renderStep(tick: number): Pixels {
+  const cycle = 24
+  const t = tick % cycle
+  const dots: Pixels = [[2,4],[4,4],[6,4]]
+  const pixels: Pixels = []
+  if (t < 9) {
+    const n = Math.floor(t / 3) + 1
+    for (let i = 0; i < Math.min(n, 3); i++) pixels.push(dots[i])
+  } else if (t < 18) {
+    const gone = Math.floor((t - 9) / 3) + 1
+    for (let i = gone; i < 3; i++) pixels.push(dots[i])
+  }
+  return pixels
+}
+
+// ── Fill: 8-point ring fills clockwise, holds complete, then resets ───────
+const FILL_RING: Pixels = [[3,0],[5,1],[6,3],[5,5],[3,6],[1,5],[0,3],[1,1]]
+function renderFill(tick: number): Pixels {
+  const cycle = 32
+  const t = tick % cycle
+  if (t >= 28) return []
+  if (t >= 24) return [...FILL_RING]
+  return FILL_RING.slice(0, Math.floor(t / 3))
+}
+
+// ── Grow: three columns grow from bottom to different heights, hold, reset ─
+function renderGrow(tick: number): Pixels {
+  const cycle = 32
+  const t = tick % cycle
+  const pixels: Pixels = []
+  for (const [col, maxH] of [[2,5],[4,7],[6,4]] as [number,number][]) {
+    const h = t < 20 ? Math.round((t / 20) * maxH) : t < 28 ? maxH : 0
+    for (let dy = 0; dy < h; dy++) pixels.push([col, 7 - dy])
+  }
+  return pixels
+}
+
 // ── Variant registry ──────────────────────────────────────────────────────
 export const VARIANTS: Array<{ name: VariantName; render: (tick: number) => Pixels }> = [
   { name: 'EKG',      render: renderEkg      },
@@ -902,4 +1000,11 @@ export const VARIANTS: Array<{ name: VariantName; render: (tick: number) => Pixe
   { name: 'Think',  render: renderThink  },
   { name: 'Loader', render: renderLoader },
   { name: 'Radar',  render: renderRadar  },
+  { name: 'Wave',   render: renderWave   },
+  { name: 'Cog',    render: renderCog    },
+  { name: 'Ping',   render: renderPing   },
+  { name: 'Clock',  render: renderClock  },
+  { name: 'Step',   render: renderStep   },
+  { name: 'Fill',   render: renderFill   },
+  { name: 'Grow',   render: renderGrow   },
 ]
