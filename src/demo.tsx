@@ -36,7 +36,7 @@ export function Demo() {
   return (
     <div style={{ fontFamily: 'monospace', padding: '2rem', maxWidth: 1100, margin: '0 auto' }}>
       <header style={{ marginBottom: '1.5rem' }}>
-        <h1 style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>sprite-light</h1>
+        <h1 style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>sprite-lite</h1>
         <p style={{ color: '#888' }}>
           Zero-dependency 8×8 pixel-art animation component for React.
         </p>

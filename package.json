@@ -1,5 +1,5 @@
 {
-  "name": "sprite-light",
+  "name": "sprite-lite",
   "version": "0.1.1",
   "description": "Zero-dependency 8×8 pixel-art animation component for React.",
   "keywords": ["react", "animation", "pixel-art", "sprite", "component", "svg", "ui", "zero-dependency"],
