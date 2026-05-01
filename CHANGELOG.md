@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to sprite-light are documented here.
+All notable changes to sprite-lite are documented here.
 
 ## [0.1.1] - 2026-04-13
 

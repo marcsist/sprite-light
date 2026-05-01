@@ -1,4 +1,4 @@
-# sprite-light
+# sprite-lite
 
 Zero-dependency 8×8 pixel-art animation component for React.
 
@@ -114,7 +114,7 @@ When `color` is a tuple, all 64 grid cells render — dim for unlit, primary for
 `VariantName` is exported for autocomplete and type safety:
 
 ```tsx
-import { ThinkingSprite, WriteSprite, type VariantName } from 'sprite-light'
+import { ThinkingSprite, WriteSprite, type VariantName } from 'sprite-lite'
 
 const myVariant: VariantName = 'DNA' // autocompletes all 42 names
 ```
